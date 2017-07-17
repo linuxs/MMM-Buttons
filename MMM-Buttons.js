@@ -13,10 +13,55 @@ Module.register("MMM-Buttons", {
 
     // Default module config.
     defaults: {
-        buttons: [],
+        buttons: [
+          {
+                pin: 25,
+                name: "timer",
+                longPress: undefined,
+                shortPress: {
+                    notification: "REMOTE_ACTION",
+                    payload: {action: "TIMER"}
+                }
+            },
+            {
+                pin: 24,
+                name: "up",
+                shortPress: {
+                    notification: "REMOTE_ACTION",
+                    payload: {action: "UP"}
+                },
+                shortPress: undefined
+            },
+            {
+                pin: 23,
+                name: "down",
+                shortPress: {
+                    notification: "REMOTE_ACTION",
+                    payload: {action: "DOWN"}
+                },
+                longPress: undefined
+            },
+            {
+                pin: 22,
+                name: "action",
+                longPress: undefined,
+                shortPress: {
+                    notification: "REMOTE_ACTION",
+                    payload: {action: "SHUTDOWN"}
+                }
+            },
+            {
+                pin: 21,
+                name: "nav",
+                shortPress: {
+                    notification: "REMOTE_ACTION",
+                    payload: {action: "SHUTDOWN"}
+                },
+                longPress: undefined
+            }
+        ],
         minShortPressTime: 0,
-        maxShortPressTime: 500,
-        minLongPressTime: 3000
+        maxShortPressTime: 500
     },
 
     // Define start sequence.
@@ -51,36 +96,38 @@ Module.register("MMM-Buttons", {
     },
 
     buttonUp: function(index, duration) {
-        if (this.alerts[index]) {
-            // alert already shown, clear interval to update it and hide it
-            if (this.intervals[index] !== undefined) {
-                clearInterval(this.intervals[index]);
-            }
-            this.alerts[index] = false;
-            this.sendNotification("HIDE_ALERT");
-        } else {
+      console.log('Button clicked');
+      return;
+        // if (this.alerts[index]) {
+        //     // alert already shown, clear interval to update it and hide it
+        //     if (this.intervals[index] !== undefined) {
+        //         clearInterval(this.intervals[index]);
+        //     }
+        //     this.alerts[index] = false;
+        //     this.sendNotification("HIDE_ALERT");
+        // } else {
             // no alert shown, clear time out for showing it
             if (this.intervals[index] !== undefined) {
                 clearTimeout(this.intervals[index]);
             }
-        }
+        // }
         this.intervals[index] = undefined;
 
-        var min = this.config.minShortPressTime;
-        var max = this.config.maxShortPressTime;
+        // var min = this.config.minShortPressTime;
+        // var max = this.config.maxShortPressTime;
         var shortPress = this.config.buttons[index].shortPress
-        var longPress = this.config.buttons[index].longPress
+        // var longPress = this.config.buttons[index].longPress
 
-        if (shortPress && min <= duration && duration <= max)
-        {
+        // if (shortPress && min <= duration && duration <= max)
+        // {
             this.sendAction(shortPress);
-        }
+        // }
 
-        min = this.config.minLongPressTime;
-        if (longPress && min <= duration)
-        {
-            this.sendAction(longPress);
-        }
+        // min = this.config.minLongPressTime;
+        // if (longPress && min <= duration)
+        // {
+        //     this.sendAction(longPress);
+        // }
     },
 
     sendAction(description) {
@@ -90,12 +137,12 @@ Module.register("MMM-Buttons", {
     buttonDown: function(index) {
         var self = this;
 
-        if (self.config.buttons[index].longPress && self.config.buttons[index].longPress.title)
-        {
-            this.intervals[index] = setTimeout(function () {
-                self.startAlert(index);
-            }, this.config.maxShortPressTime);
-        }
+        // if (self.config.buttons[index].longPress && self.config.buttons[index].longPress.title)
+        // {
+        //     this.intervals[index] = setTimeout(function () {
+        //         self.startAlert(index);
+        //     }, this.config.maxShortPressTime);
+        // }
     },
 
     showAlert: function (index) {
