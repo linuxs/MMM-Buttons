@@ -10,6 +10,13 @@
 Module.register("MMM-Buttons", {
 
     requiresVersion: "2.1.0",
+    debug: true,
+    currentMenu: 'timer',
+    timer: {
+      'currentTimer': 0,
+      'status': 'idle',
+      'interval': undefined
+    },
 
     // Default module config.
     defaults: {
@@ -26,20 +33,20 @@ Module.register("MMM-Buttons", {
             {
                 pin: 24,
                 name: "up",
+                longPress: undefined,
                 shortPress: {
                     notification: "REMOTE_ACTION",
                     payload: {action: "UP"}
-                },
-                shortPress: undefined
+                }
             },
             {
                 pin: 23,
                 name: "down",
+                longPress: undefined,
                 shortPress: {
                     notification: "REMOTE_ACTION",
                     payload: {action: "DOWN"}
-                },
-                longPress: undefined
+                }
             },
             {
                 pin: 22,
@@ -47,7 +54,7 @@ Module.register("MMM-Buttons", {
                 longPress: undefined,
                 shortPress: {
                     notification: "REMOTE_ACTION",
-                    payload: {action: "SHUTDOWN"}
+                    payload: {action: "ACTION"}
                 }
             },
             {
@@ -55,7 +62,7 @@ Module.register("MMM-Buttons", {
                 name: "nav",
                 shortPress: {
                     notification: "REMOTE_ACTION",
-                    payload: {action: "SHUTDOWN"}
+                    payload: {action: "NAVIGATION"}
                 },
                 longPress: undefined
             }
@@ -95,9 +102,145 @@ Module.register("MMM-Buttons", {
         });
     },
 
+    checkStatus: function(){
+      var self = this;
+      // console.log(this);return;
+      if (this.timer.status == 'running'){
+        if (this.timer.currentTimer >= 1000){
+          console.log('timer running: ' + ((this.timer.currentTimer/60)/1000));
+          this.timer.currentTimer -= 1000;
+          setTimeout(function(){ self.checkStatus(); }, 1000);
+        }else{
+          console.log('timer completed');
+          this.timer.currentTimer = 0;
+          this.timer.status = 'idle';
+          // clearInterval(this.timer.interval);
+        }
+      }
+    },
+
     buttonUp: function(index, duration) {
-      console.log('Button clicked');
-      return;
+      var self = this;
+      var button = this.config.buttons[index];
+
+      if (button['name'] == 'nav'){
+        if (this.debug){
+          console.log('Current Menu: ' + this.currentMenu);
+        }
+
+        switch (this.currentMenu) {
+          case 'timer':
+            this.currentMenu = 'tv';
+            this.sendSocketNotification("LED_CONFIG", {
+                timer: 1,
+                up: 1,
+                down: 1,
+                action: 1,
+                nav: 1
+            });
+            break;
+
+          case 'tv':
+            this.currentMenu = 'games';
+            this.sendSocketNotification("LED_CONFIG", {
+                timer: 1,
+                up: 0,
+                down: 0,
+                action: 0,
+                nav: 1
+            });
+            break;
+
+          case 'games':
+            this.currentMenu = 'photos';
+            this.sendSocketNotification("LED_CONFIG", {
+                timer: 1,
+                up: 1,
+                down: 1,
+                action: 0,
+                nav: 1
+            });
+            break;
+
+          case 'photos':
+            this.currentMenu = 'timer';
+            this.sendSocketNotification("LED_CONFIG", {
+                timer: 1,
+                up: 0,
+                down: 0,
+                action: 0,
+                nav: 1
+            });
+            break;
+        }
+
+        if (this.debug){
+          console.log('New Menu: ' + this.currentMenu);
+        }
+      }
+
+      if (this.currentMenu == 'timer'){
+        if (button['name'] == 'timer'){
+          if (this.timer.currentTimer >= 1000){
+            if (this.timer.status == 'idle'){
+              this.timer.status = 'running';
+
+              this.timer.interval = setTimeout(function(){ self.checkStatus(); },1000);
+            }else{
+              this.timer.status = 'idle';
+              if (typeof(this.timer.interval) != 'undefined'){
+                clearInterval(this.timer.interval);
+              }
+            }
+          }
+          return;
+        }
+
+        if (button['name'] == 'up'){
+          this.timer.currentTimer += 300000;
+          if (this.debug){
+            console.log('Timer value altered: ' + this.timer.currentTimer);
+          }
+          return;
+        }
+
+        if (button['name'] == 'down'){
+          if (this.timer.currentTimer >= 1000){
+            this.timer.currentTimer -= 300000;
+          }
+          if (this.debug){
+            console.log('Timer value altered: ' + this.timer.currentTimer);
+          }
+          return;
+        }
+      }
+
+      if (this.currentMenu == 'tv'){
+        if (button['name'] == 'up'){
+          console.log('tv up');
+        }
+
+        if (button['name'] == 'down'){
+          console.log('tv down');
+        }
+
+        if (button['name'] == 'action'){
+          console.log('tv action');
+        }
+      }
+
+      if (this.currentMenu == 'games'){
+
+      }
+
+      if (this.currentMenu == 'photos'){
+
+      }
+
+      if (this.currentMenu == 'ads'){
+
+      }
+
         // if (this.alerts[index]) {
         //     // alert already shown, clear interval to update it and hide it
         //     if (this.intervals[index] !== undefined) {
@@ -120,18 +263,17 @@ Module.register("MMM-Buttons", {
 
         // if (shortPress && min <= duration && duration <= max)
         // {
-            this.sendAction(shortPress);
-        // }
 
-        // min = this.config.minLongPressTime;
-        // if (longPress && min <= duration)
-        // {
-        //     this.sendAction(longPress);
-        // }
+
+            this.sendAction(shortPress);
     },
 
     sendAction(description) {
-        this.sendNotification(description.notification, description.payload);
+        var customPayload = {
+          payload: description.payload,
+          currentMenu: this.currentMenu
+        };
+        this.sendNotification(description.notification, customPayload);
     },
 
     buttonDown: function(index) {

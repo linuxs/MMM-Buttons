@@ -12,7 +12,7 @@ module.exports = NodeHelper.create({
     // Subclass start method.
     start: function() {
         var self = this;
-        
+
         console.log("Starting node helper for: " + self.name);
 
         this.loaded = false;
@@ -20,11 +20,22 @@ module.exports = NodeHelper.create({
 
     // Subclass socketNotificationReceived received.
     socketNotificationReceived: function(notification, payload) {
-        if (notification === 'BUTTON_CONFIG') {     
+        console.log(notification);
+        if (notification === 'BUTTON_CONFIG') {
             this.config = payload.config;
 
             this.intializeButtons();
+            this.initalizeLeds();
         };
+
+        if (notification === 'LED_CONFIG'){
+          console.log(payload);
+          this.leds[0].writeSync(payload['timer']);
+          this.leds[1].writeSync(payload['up']);
+          this.leds[2].writeSync(payload['down']);
+          this.leds[3].writeSync(payload['action']);
+          this.leds[4].writeSync(payload['nav']);
+        }
     },
 
     watchHandler: function(index) {
@@ -41,7 +52,7 @@ module.exports = NodeHelper.create({
             }
             if (value == 0 && self.buttons[index].pressed !== undefined) {
                 var start = self.buttons[index].pressed;
-                var end = new Date().getTime(); 
+                var end = new Date().getTime();
                 var time = end - start;
 
                 self.buttons[index].pressed = undefined;
@@ -62,6 +73,24 @@ module.exports = NodeHelper.create({
 
         var pir = new Gpio(self.buttons[index].pin, 'in', 'both', options);
         pir.watch(this.watchHandler(index));
+    },
+
+    leds: [],
+
+    initalizeLeds: function(){
+      this.leds = [
+        new Gpio(13, 'out'),
+        new Gpio(19, 'out'),
+        new Gpio(26, 'out'),
+        new Gpio(12, 'out'),
+        new Gpio(16, 'out')
+      ];
+
+      this.leds[0].writeSync(1);
+      this.leds[1].writeSync(0);
+      this.leds[2].writeSync(0);
+      this.leds[3].writeSync(0);
+      this.leds[4].writeSync(1);
     },
 
     intializeButtons: function() {
